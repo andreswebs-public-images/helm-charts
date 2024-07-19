@@ -1,0 +1,163 @@
+applicationName: app
+
+cronJob:
+  enabled: false
+  jobs:
+
+deployment:
+  enabled: true
+  strategy:
+    type: RollingUpdate
+  nodeSelector:
+  initContainers:
+  additionalLabels:
+  podLabels:
+  annotations:
+  additionalPodAnnotations:
+  replicas:
+  imagePullSecrets: ""
+  envFrom:
+  env:
+  volumes:
+  volumeMounts:
+  tolerations:
+  affinity:
+  topologySpreadConstraints:
+  revisionHistoryLimit: 2
+  image:
+    repository: ""
+    tag: ""
+    digest: ""
+    pullPolicy: Always
+  dnsConfig:
+  startupProbe:
+    enabled: false
+    failureThreshold: 3
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+    initialDelaySeconds: 10
+    httpGet: {}
+  readinessProbe:
+    enabled: false
+    failureThreshold: 3
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+    initialDelaySeconds: 10
+    httpGet: {}
+  livenessProbe:
+    enabled: false
+    failureThreshold: 3
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+    initialDelaySeconds: 10
+    httpGet: {}
+  resources:
+    limits:
+      memory: 256Mi
+      cpu: 0.5
+    requests:
+      memory: 128Mi
+      cpu: 0.1
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+  additionalContainers:
+  securityContext:
+  command: []
+  args: []
+  ports: []
+  terminationGracePeriodSeconds:
+
+persistence:
+  enabled: false
+  mountPVC: false
+  mountPath: "/"
+  name: ""
+  accessMode: ReadWriteOnce
+  storageClass: "-"
+  additionalLabels:
+  annotations:
+  storageSize: 8Gi
+  volumeMode: ""
+  volumeName: ""
+
+service:
+  enabled: false
+  additionalLabels:
+  annotations:
+  ports:
+    - port: 8080
+      name: http
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP
+  clusterIP:
+
+ingress:
+  enabled: false
+  ingressClassName: ""
+  servicePort: http
+  pathType: ImplementationSpecific
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+  additionalLabels:
+  annotations:
+  tls:
+
+rbac:
+  enabled: true
+  serviceAccount:
+    enabled: false
+    additionalLabels:
+    annotations:
+  roles:
+
+configMap:
+  enabled: false
+  additionalLabels:
+  annotations:
+  files:
+
+autoscaling:
+  enabled: false
+  additionalLabels:
+  annotations:
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 60
+
+externalSecret:
+  enabled: false
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  files:
+
+networkPolicy:
+  enabled: false
+  additionalLabels:
+  annotations:
+  ingress:
+  egress:
+
+pdb:
+  enabled: false
+  minAvailable: 1

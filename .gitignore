@@ -1,0 +1,6 @@
+# Compiled Helm Chart dependencies
+charts/**/Chart.lock
+charts/**/charts
+
+sandbox/
+.envrc

@@ -1,0 +1,8 @@
+---
+chart-yaml-schema: .ci/ct/chart.schema.yaml
+lint-conf: .yamllint.yml
+
+validate-maintainers: false
+
+chart-dirs:
+  - charts
