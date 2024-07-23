@@ -20,5 +20,5 @@ jobs:
 
       - name: Helm Template
         run: |
-          helm dependency build
+          helm dependency build ./charts/app.test
           helm template ./charts/app.test
