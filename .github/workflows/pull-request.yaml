@@ -38,20 +38,26 @@ jobs:
           helm dependency build ./charts/app.test
           helm template ./charts/app.test | tee source.k8s.yaml
 
+      - name: Upload source.k8s.yaml artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-k8s
+          path: source.k8s.yaml
+
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
+      - name: Download source.k8s.yaml artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: source-k8s
+
       - name: Helm Template
         run: |
-          ls -lia
-          cat source.k8s.yaml
+          helm dependency build ./charts/app.test
+          helm template ./charts/app.test | tee target.k8s.yaml
 
-      # - name: Helm Template
-      #   run: |
-      #     helm dependency build ./charts/app.test
-      #     helm template ./charts/app.test > target.k8s.yaml
-
-      # - name: Diff
-      #   run: diff source.k8s.yaml target.k8s.yaml || true
+      - name: Diff
+        run: diff source.k8s.yaml target.k8s.yaml || true
