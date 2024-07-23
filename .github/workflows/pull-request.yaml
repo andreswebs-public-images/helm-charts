@@ -54,10 +54,10 @@ jobs:
         with:
           name: source-k8s
 
-      # - name: Helm Template
-      #   run: |
-      #     helm dependency build ./charts/app.test
-      #     helm template ./charts/app.test | tee target.k8s.yaml
+      - name: Helm Template
+        run: |
+          helm dependency build ./charts/app.test
+          helm template ./charts/app.test | tee target.k8s.yaml
 
-      # - name: Diff
-      #   run: diff source.k8s.yaml target.k8s.yaml
+      - name: Diff
+        run: diff source.k8s.yaml target.k8s.yaml
