@@ -35,7 +35,7 @@ jobs:
 
       - name: Helm Template
         run: |
-          helm dependency build
+          helm dependency build ./charts/app.test
           helm template ./charts/app.test > source.k8s.yaml
 
       - name: Checkout target branch
@@ -45,7 +45,7 @@ jobs:
 
       - name: Helm Template
         run: |
-          helm dependency build
+          helm dependency build ./charts/app.test
           helm template ./charts/app.test > target.k8s.yaml
 
       - name: Diff
