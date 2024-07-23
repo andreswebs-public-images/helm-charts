@@ -57,6 +57,7 @@ jobs:
       - name: Helm Template
         run: |
           ls -lia
+          ls -lia ./charts
           cat source.k8s.yaml
 
       # - name: Helm Template
