@@ -34,7 +34,9 @@ jobs:
         uses: azure/setup-helm@v4.2.0
 
       - name: Helm Template
-        run: helm template ./charts/app.test > source.k8s.yaml
+        run: |
+          helm dependency build
+          helm template ./charts/app.test > source.k8s.yaml
 
       - name: Checkout target branch
         uses: actions/checkout@v4
@@ -42,7 +44,9 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Helm Template
-        run: helm template ./charts/app.test > target.k8s.yaml
+        run: |
+          helm dependency build
+          helm template ./charts/app.test > target.k8s.yaml
 
       - name: Diff
         run: diff source.k8s.yaml target.k8s.yaml || true

@@ -19,4 +19,6 @@ jobs:
         uses: azure/setup-helm@v4.2.0
 
       - name: Helm Template
-        run: helm template ./charts/app.test
+        run: |
+          helm dependency build
+          helm template ./charts/app.test
