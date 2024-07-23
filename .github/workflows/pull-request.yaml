@@ -36,7 +36,7 @@ jobs:
       - name: Helm Template
         run: |
           helm dependency build ./charts/app.test
-          helm template ./charts/app.test > source.k8s.yaml
+          helm template ./charts/app.test | tee source.k8s.yaml
 
       - name: Checkout target branch
         uses: actions/checkout@v4
