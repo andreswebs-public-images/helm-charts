@@ -41,7 +41,6 @@ jobs:
       - name: Push Helm chart
         env:
           OCI_REGISTRY: oci://${{ steps.ecr-login.outputs.registry }}/helm
-          CHART_VERSION: ${{ steps.chart-version.outputs.version }}
           CHART: ${{ matrix.charts }}
         run: |
           helm package ./charts/${CHART}
