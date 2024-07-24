@@ -15,7 +15,11 @@ on:
       - "charts/**"
 
 jobs:
-  helm-template:
+  charts:
+    strategy:
+      matrix:
+        charts:
+          - app
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -38,6 +42,7 @@ jobs:
         env:
           OCI_REGISTRY: oci://${{ steps.ecr-login.outputs.registry }}/helm
           CHART_VERSION: ${{ steps.chart-version.outputs.version }}
+          CHART: ${{ matrix.charts }}
         run: |
-          helm package ./charts/app
-          helm push app-*.tgz "${OCI_REGISTRY}"
+          helm package ./charts/${CHART}
+          helm push "${CHART}"-*.tgz "${OCI_REGISTRY}"
