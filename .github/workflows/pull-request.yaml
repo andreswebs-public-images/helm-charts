@@ -1,9 +1,9 @@
 ---
 name: Pull Request
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
-  workflow_dispatch:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
 
       - name: Diff
         run: |
-          diff source.k8s.yaml target.k8s.yaml > diff.txt
+          diff source.k8s.yaml target.k8s.yaml | tee diff.txt
 
       - name: Report
         uses: andreswebs/gh-actions/.github/actions/file-report@main
