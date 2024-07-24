@@ -73,12 +73,12 @@ jobs:
           echo "${NIX_PATH}"
           nix-env --install difftastic --file '<nixpkgs>'
 
-      # - name: Diff
-      #   run: |
-      #     difft source.k8s.yaml target.k8s.yaml | tee diff.txt
+      - name: Diff
+        run: |
+          difft source.k8s.yaml target.k8s.yaml | tee diff.txt
 
-      # - name: Report
-      #   uses: andreswebs/gh-actions/.github/actions/file-report@main
-      #   with:
-      #     source-txt-file: diff.txt
-      #     environment: test
+      - name: Report
+        uses: andreswebs/gh-actions/.github/actions/file-report@main
+        with:
+          source-txt-file: diff.txt
+          environment: test
