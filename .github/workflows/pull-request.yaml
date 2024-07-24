@@ -60,4 +60,11 @@ jobs:
           helm template ./charts/app.test | tee target.k8s.yaml
 
       - name: Diff
-        run: diff source.k8s.yaml target.k8s.yaml
+        run: |
+          diff source.k8s.yaml target.k8s.yaml > diff.txt
+
+      - name: Report
+        uses: andreswebs/gh-actions/.github/actions/file-report@main
+        with:
+          source-txt-file: diff.txt
+          environment: test
