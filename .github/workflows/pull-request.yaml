@@ -59,9 +59,13 @@ jobs:
           helm dependency build ./charts/app.test
           helm template ./charts/app.test | tee target.k8s.yaml
 
+      - uses: cachix/install-nix-action@v27
+      - run: |
+          nix-env --install difftastic
+
       - name: Diff
         run: |
-          diff source.k8s.yaml target.k8s.yaml | tee diff.txt
+          difft source.k8s.yaml target.k8s.yaml | tee diff.txt
 
       - name: Report
         uses: andreswebs/gh-actions/.github/actions/file-report@main
