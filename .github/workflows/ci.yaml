@@ -1,6 +1,10 @@
 ---
 name: Helm Chart CI
 
+permissions:
+  contents: read
+  id-token: write
+
 on:
   workflow_dispatch:
 
