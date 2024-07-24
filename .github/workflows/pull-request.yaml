@@ -1,9 +1,9 @@
 ---
 name: Pull Request
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
-  workflow_dispatch:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
@@ -59,9 +59,23 @@ jobs:
           helm dependency build ./charts/app.test
           helm template ./charts/app.test | tee target.k8s.yaml
 
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: nixpkgs version
+        run: |
+          nix-instantiate --eval -E '(import <nixpkgs> {}).lib.version'
+
+      - name: Install difftastic
+        run: |
+          echo "${NIX_PATH}"
+          nix-env --install difftastic --file '<nixpkgs>'
+
       - name: Diff
         run: |
-          diff source.k8s.yaml target.k8s.yaml > diff.txt
+          difft source.k8s.yaml target.k8s.yaml | tee diff.txt
 
       - name: Report
         uses: andreswebs/gh-actions/.github/actions/file-report@main
