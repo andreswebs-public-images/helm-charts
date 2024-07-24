@@ -22,6 +22,10 @@ jobs:
         shell: bash
 
   diff:
+    strategy:
+      matrix:
+        charts:
+          - app
     runs-on: ubuntu-latest
     needs: [pre-commit]
     steps:
@@ -33,16 +37,16 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4.2.0
 
-      - name: Helm Template
+      - name: Source Template
         run: |
-          helm dependency build ./charts/app.test
-          helm template ./charts/app.test | tee source.k8s.yaml
+          helm dependency build ./charts/${{ matrix.charts }}.test
+          helm template ./charts/${{ matrix.charts }}.test | tee ${{ matrix.charts }}.source.k8s.yaml
 
       - name: Upload source.k8s.yaml artifact
         uses: actions/upload-artifact@v4
         with:
-          name: source-k8s
-          path: source.k8s.yaml
+          name: ${{ matrix.charts }}-source-k8s
+          path: ${{ matrix.charts }}.source.k8s.yaml
 
       - name: Checkout target branch
         uses: actions/checkout@v4
@@ -52,33 +56,28 @@ jobs:
       - name: Download source.k8s.yaml artifact
         uses: actions/download-artifact@v4
         with:
-          name: source-k8s
+          name: ${{ matrix.charts }}-source-k8s
 
-      - name: Helm Template
+      - name: Target Template
         run: |
-          helm dependency build ./charts/app.test
-          helm template ./charts/app.test | tee target.k8s.yaml
+          helm dependency build ./charts/${{ matrix.charts }}.test
+          helm template ./charts/${{ matrix.charts }}.test | tee ${{ matrix.charts }}.target.k8s.yaml
 
       - name: Install Nix
         uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
-      - name: nixpkgs version
-        run: |
-          nix-instantiate --eval -E '(import <nixpkgs> {}).lib.version'
-
       - name: Install difftastic
         run: |
-          echo "${NIX_PATH}"
           nix-env --install difftastic --file '<nixpkgs>'
 
       - name: Diff
         run: |
-          difft source.k8s.yaml target.k8s.yaml | tee diff.txt
+          difft ${{ matrix.charts }}.source.k8s.yaml ${{ matrix.charts }}.target.k8s.yaml | tee ${{ matrix.charts }}.diff.txt
 
       - name: Report
         uses: andreswebs/gh-actions/.github/actions/file-report@main
         with:
-          source-txt-file: diff.txt
-          environment: test
+          source-txt-file: ${{ matrix.charts }}.diff.txt
+          environment: ${{ matrix.charts }}
