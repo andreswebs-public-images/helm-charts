@@ -22,7 +22,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ vars.AWS_REGION }}
-          role-to-assume: ${{ vars.AWS_IAM_ROLE }}
+          role-to-assume: ${{ vars.AWS_IAM_ROLE_ARN }}
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -31,6 +31,7 @@ jobs:
       - name: Push Helm chart
         env:
           OCI_REGISTRY: oci://${{ steps.ecr-login.outputs.registry }}/helm
-          OCI_REPO_NAME: app
+          CHART_VERSION: 0.0.1
         run: |
           helm package ./charts/app
+          helm push "app-${CHART_VERSION}.tgz" "${OCI_REGISTRY}"
