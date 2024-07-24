@@ -3,5 +3,5 @@ apiVersion: v2
 name: app
 description: Common library chart for generic app charts
 type: library
-version: 0.0.3
+version: 0.0.4
 kubeVersion: ">=1.28.0-0"
