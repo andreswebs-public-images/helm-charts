@@ -36,7 +36,6 @@ Create chart name and version as used by the chart label.
 {{/*
 Common labels
 */}}
-testCI: "true"
 {{- define "base.labels" -}}
 helm.sh/chart: {{ include "base.chart" . }}
 {{- with include "base.version" . }}
