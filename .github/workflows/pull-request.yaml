@@ -34,9 +34,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4.2.0
-
       - name: Source Template
         run: |
           helm dependency build ./charts/${{ matrix.charts }}.test
