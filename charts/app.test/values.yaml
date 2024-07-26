@@ -1,14 +1,5 @@
-# Name of the application.
+---
 applicationName: app-test
-
-# pulumi:
-#   acmCertArn: value-from-pulumi
-#   awsAccountId: value-from-pulumi
-#   awsRegion: value-from-pulumi
-#   domainBase: value-from-pulumi
-#   envName: value-from-pulumi
-#   route53ZoneId: value-from-pulumi
-#   svcAcctName: value-from-pulumi
 
 deployment:
   enabled: true
@@ -45,7 +36,7 @@ deployment:
       path: /healthz
 
   readinessProbe:
-    enabled: true
+    enabled: false
     initialDelaySeconds: 30
     periodSeconds: 10
     failureThreshold: 100
