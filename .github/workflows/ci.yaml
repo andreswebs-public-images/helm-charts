@@ -15,12 +15,15 @@ on:
       - "charts/**"
 
 jobs:
-  public-charts:
+  charts:
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
         charts:
-          - app
-    runs-on: ubuntu-latest
+          - type: pub
+            name: app
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,14 +38,25 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          registry-type: public
+          registry-type: ${{ matrix.charts.type == 'pub' && 'public' || 'private' }}
 
-      - name: Push Helm chart
+      - name: Environment
         env:
           REGISTRY_BASE: ${{ steps.ecr-login.outputs.registry }}
           REGISTRY_ALIAS: ${{ vars.AWS_ECR_PUBLIC_ALIAS }}
-          CHART: ${{ matrix.charts }}
+          CHART: ${{ matrix.charts.name }}
+          TYPE: ${{ matrix.charts.type }}
         run: |
-          OCI_REGISTRY="oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
-          helm package ./charts/pub/${CHART}
+          if [ "${TYPE}" == "pub" ]; then
+            OCI_REGISTRY="oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
+          else
+            OCI_REGISTRY="oci://${REGISTRY_BASE}/helm"
+          fi
+          echo "OCI_REGISTRY=${OCI_REGISTRY}" >> $GITHUB_ENV
+          echo "CHART=${CHART}" >> $GITHUB_ENV
+          echo "TYPE=${TYPE}" >> $GITHUB_ENV
+
+      - name: Push Helm chart
+        run: |
+          helm package ./charts/${TYPE}/${CHART}
           helm push "${CHART}"-*.tgz "${OCI_REGISTRY}"
