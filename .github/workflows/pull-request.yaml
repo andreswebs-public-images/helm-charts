@@ -81,4 +81,3 @@ jobs:
         with:
           source-txt-file: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.diff.txt
           environment: ${{ matrix.charts.name }}.${{ matrix.charts.type }}
-# TEST
