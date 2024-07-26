@@ -15,7 +15,7 @@ on:
       - "charts/**"
 
 jobs:
-  charts:
+  public-charts:
     strategy:
       matrix:
         charts:
@@ -34,11 +34,15 @@ jobs:
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
 
       - name: Push Helm chart
         env:
-          OCI_REGISTRY: oci://${{ steps.ecr-login.outputs.registry }}/helm
+          REGISTRY_BASE: ${{ steps.ecr-login.outputs.registry }}
+          REGISTRY_ALIAS: ${{ vars.AWS_ECR_PUBLIC_ALIAS }}
+          OCI_REGISTRY: oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts
           CHART: ${{ matrix.charts }}
         run: |
-          helm package ./charts/${CHART}
+          helm package ./charts/pub/${CHART}
           helm push "${CHART}"-*.tgz "${OCI_REGISTRY}"
