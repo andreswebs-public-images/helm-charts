@@ -41,8 +41,8 @@ jobs:
         env:
           REGISTRY_BASE: ${{ steps.ecr-login.outputs.registry }}
           REGISTRY_ALIAS: ${{ vars.AWS_ECR_PUBLIC_ALIAS }}
-          OCI_REGISTRY: oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts
           CHART: ${{ matrix.charts }}
         run: |
+          OCI_REGISTRY="oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
           helm package ./charts/pub/${CHART}
           helm push "${CHART}"-*.tgz "${OCI_REGISTRY}"
