@@ -42,7 +42,7 @@ jobs:
           helm dependency build ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
           helm template ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test | tee ${{ matrix.charts.name }}.${{ matrix.charts.type }}.source.k8s.yaml
 
-      - name: Upload source.k8s.yaml artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-source-k8s
@@ -53,7 +53,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
-      - name: Download source.k8s.yaml artifact
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-source-k8s
