@@ -64,9 +64,10 @@ jobs:
           helm template ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test | tee ${{ matrix.charts.name }}.${{ matrix.charts.type }}.target.k8s.yaml
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v27
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
+        uses: DeterminateSystems/nix-installer-action@v13
+
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v7
 
       - name: Install difftastic
         run: |
