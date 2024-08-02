@@ -63,15 +63,8 @@ jobs:
           helm dependency build ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
           helm template ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test | tee ${{ matrix.charts.name }}.${{ matrix.charts.type }}.target.k8s.yaml
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v13
-
-      - name: Enable Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v7
-
       - name: Install difftastic
-        run: |
-          nix-env --install difftastic --file '<nixpkgs>'
+        uses: andreswebs/gh-actions/.github/actions/install-difftastic@main
 
       - name: Diff
         run: |
