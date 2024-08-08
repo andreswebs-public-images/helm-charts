@@ -38,10 +38,10 @@ jobs:
     env:
       CHART_NAME: ${{ matrix.charts.name }}
       CHART_PATH: ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
-      SOURCE_YAML: ${{ matrix.charts }}.source.yaml
-      TARGET_YAML: ${{ matrix.charts }}.target.yaml
-      SOURCE_ARTIFACT: ${{ matrix.charts }}-source
-      TARGET_ARTIFACT: ${{ matrix.charts }}-target
+      SOURCE_YAML: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.source.yaml
+      TARGET_YAML: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.target.yaml
+      SOURCE_ARTIFACT: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-source
+      TARGET_ARTIFACT: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-target
 
       K8S_SCHEMAS_EXTERNAL_SECRET: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1beta1.json
 
@@ -62,11 +62,11 @@ jobs:
         uses: docker://ghcr.io/yannh/kubeconform:latest
         with:
           entrypoint: /kubeconform
-          args: |
-            -summary \
-            -output json \
-            -schema-location default \
-            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
+          args: >-
+            -summary
+            -output json
+            -schema-location default
+            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }}
             ${{ env.SOURCE_YAML }}
 
       - name: Upload source artifact
@@ -96,11 +96,11 @@ jobs:
         uses: docker://ghcr.io/yannh/kubeconform:latest
         with:
           entrypoint: /kubeconform
-          args: |
-            -summary \
-            -output json \
-            -schema-location default \
-            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
+          args: >-
+            -summary
+            -output json
+            -schema-location default
+            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }}
             ${{ env.TARGET_YAML }}
 
       - name: Install difftastic
@@ -111,7 +111,7 @@ jobs:
           difft "${SOURCE_YAML}" "${TARGET_YAML}" | tee "${CHART_NAME}.diff.txt"
 
       - name: Report
-        uses: hightouchinc/github-actions/.github/actions/file-report@main
+        uses: andreswebs/gh-actions/.github/actions/file-report@main
         with:
           source-txt-file: ${{ env.CHART_NAME }}.diff.txt
           environment: ${{ env.CHART_NAME }}
