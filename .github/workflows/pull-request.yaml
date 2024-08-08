@@ -2,8 +2,10 @@
 name: Pull Request
 on:
   workflow_dispatch:
+
   pull_request:
     branches: [main]
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
@@ -24,13 +26,25 @@ jobs:
         shell: bash
 
   diff:
+    runs-on: ubuntu-latest
+    needs: [pre-commit]
+
     strategy:
       matrix:
         charts:
           - type: pub
             name: app
-    runs-on: ubuntu-latest
-    needs: [pre-commit]
+
+    env:
+      CHART_NAME: ${{ matrix.charts.name }}
+      CHART_PATH: ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
+      SOURCE_YAML: ${{ matrix.charts }}.source.yaml
+      TARGET_YAML: ${{ matrix.charts }}.target.yaml
+      SOURCE_ARTIFACT: ${{ matrix.charts }}-source
+      TARGET_ARTIFACT: ${{ matrix.charts }}-target
+
+      K8S_SCHEMAS_EXTERNAL_SECRET: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1beta1.json
+
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
@@ -39,39 +53,65 @@ jobs:
 
       - name: Source Template
         run: |
-          helm dependency build ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
-          helm template ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test | tee ${{ matrix.charts.name }}.${{ matrix.charts.type }}.source.k8s.yaml
+          [ -d "${CHART_PATH}/charts" ] && rm -rf "${CHART_PATH}/charts"
+          [ -f "${CHART_PATH}/Chart.lock" ] && rm -f "${CHART_PATH}/Chart.lock"
+          helm dependency build "${CHART_PATH}"
+          helm template "${CHART_PATH}" | tee "${SOURCE_YAML}"
 
-      - name: Upload artifact
+      - name: Validate Source
+        uses: docker://ghcr.io/yannh/kubeconform:latest
+        with:
+          entrypoint: /kubeconform
+          args: |
+            -summary \
+            -output json \
+            -schema-location default \
+            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
+            ${{ env.SOURCE_YAML }}
+
+      - name: Upload source artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-source-k8s
-          path: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.source.k8s.yaml
+          name: ${{ env.SOURCE_ARTIFACT }}
+          path: ${{ env.SOURCE_YAML }}
 
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
-      - name: Download artifact
+      - name: Download source artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-source-k8s
+          name: ${{ env.SOURCE_ARTIFACT }}
 
       - name: Target Template
         run: |
-          helm dependency build ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
-          helm template ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test | tee ${{ matrix.charts.name }}.${{ matrix.charts.type }}.target.k8s.yaml
+          [ -d "${CHART_PATH}/charts" ] && rm -rf "${CHART_PATH}/charts"
+          [ -f "${CHART_PATH}/Chart.lock" ] && rm -f "${CHART_PATH}/Chart.lock"
+          helm dependency build "${CHART_PATH}"
+          helm template "${CHART_PATH}" | tee "${TARGET_YAML}"
+
+      - name: Validate Target
+        uses: docker://ghcr.io/yannh/kubeconform:latest
+        with:
+          entrypoint: /kubeconform
+          args: |
+            -summary \
+            -output json \
+            -schema-location default \
+            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
+            ${{ env.TARGET_YAML }}
 
       - name: Install difftastic
         uses: andreswebs/gh-actions/.github/actions/install-difftastic@main
 
       - name: Diff
         run: |
-          difft ${{ matrix.charts.name }}.${{ matrix.charts.type }}.source.k8s.yaml ${{ matrix.charts.name }}.${{ matrix.charts.type }}.target.k8s.yaml | tee ${{ matrix.charts.name }}.${{ matrix.charts.type }}.diff.txt
+          difft "${SOURCE_YAML}" "${TARGET_YAML}" | tee "${CHART_NAME}.diff.txt"
 
       - name: Report
-        uses: andreswebs/gh-actions/.github/actions/file-report@main
+        uses: hightouchinc/github-actions/.github/actions/file-report@main
         with:
-          source-txt-file: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.diff.txt
-          environment: ${{ matrix.charts.name }}.${{ matrix.charts.type }}
+          source-txt-file: ${{ env.CHART_NAME }}.diff.txt
+          environment: ${{ env.CHART_NAME }}
