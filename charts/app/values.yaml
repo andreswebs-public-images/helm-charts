@@ -1,0 +1,102 @@
+---
+image:
+  repository: ""
+  tag: ""
+
+serviceAccount:
+  create: true
+
+rbac:
+  create: true
+
+service:
+  enable: true
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+
+deployment:
+  command: []
+  args: []
+
+  ports:
+    - name: http
+      protocol: TCP
+      containerPort: 8080
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - '{{ include "app.fullname" . }}'
+
+  securityContext: {}
+
+  envFrom: []
+
+  env: []
+
+  startupProbe:
+    {}
+    # initialDelaySeconds: 30
+    # periodSeconds: 10
+    # failureThreshold: 100
+    # timeoutSeconds: 5
+    # httpGet:
+    #   port: http
+    #   path: /healthz
+
+  readinessProbe:
+    {}
+    # initialDelaySeconds: 30
+    # periodSeconds: 10
+    # failureThreshold: 100
+    # timeoutSeconds: 5
+    # httpGet:
+    #   port: http
+    #   path: /readyz
+
+  livenessProbe:
+    {}
+    # failureThreshold: 2
+    # periodSeconds: 5
+    # successThreshold: 1
+    # timeoutSeconds: 2
+    # initialDelaySeconds: 10
+    # httpGet:
+    #   port: http
+    #   path: /livez
+
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 0.5
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+
+  volumeMounts: []
+
+  volumes: []
+
+  additionalContainers: []
+
+pdb:
+  enable: true
+  minAvailable: 1

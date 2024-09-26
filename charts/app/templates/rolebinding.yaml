@@ -1,0 +1,17 @@
+{{- if and .Values.rbac (eq .Values.rbac.create true) }}
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "app.serviceAccountName" . }}
+  namespace: {{ include "app.namespace" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+roleRef:
+  kind: Role
+  name: {{ include "app.serviceAccountName" . }}
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "app.serviceAccountName" . }}
+{{- end }}

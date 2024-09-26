@@ -1,0 +1,26 @@
+{{- if and .Values.service (eq .Values.service.enable true) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "app.fullname" . }}
+  namespace: {{ template "app.namespace" $ }}
+  labels:
+  {{- include "app.labels" . | nindent 4 }}
+  {{- with .Values.service.labels }}
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "app.selectorLabels" . | nindent 4 }}
+  ports:
+    {{- if not .Values.service.ports -}}
+    {{- fail "service.ports are required" }}
+    {{- end }}
+    {{- toYaml .Values.service.ports | nindent 4 }}
+{{- end }}

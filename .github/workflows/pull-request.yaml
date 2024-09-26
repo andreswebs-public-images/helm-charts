@@ -32,16 +32,15 @@ jobs:
     strategy:
       matrix:
         charts:
-          - type: pub
-            name: app
+          - app
 
     env:
-      CHART_NAME: ${{ matrix.charts.name }}
-      CHART_PATH: ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
-      SOURCE_YAML: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.source.yaml
-      TARGET_YAML: ${{ matrix.charts.name }}.${{ matrix.charts.type }}.target.yaml
-      SOURCE_ARTIFACT: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-source
-      TARGET_ARTIFACT: ${{ matrix.charts.name }}-${{ matrix.charts.type }}-target
+      CHART_NAME: ${{ matrix.charts }}
+      CHART_PATH: ./charts/${{ matrix.charts }}.test
+      SOURCE_YAML: ${{ matrix.charts }}.source.yaml
+      TARGET_YAML: ${{ matrix.charts }}.target.yaml
+      SOURCE_ARTIFACT: ${{ matrix.charts }}-source
+      TARGET_ARTIFACT: ${{ matrix.charts }}-target
 
       K8S_SCHEMAS_EXTERNAL_SECRET: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1beta1.json
 

@@ -21,8 +21,7 @@ jobs:
     strategy:
       matrix:
         charts:
-          - type: pub
-            name: app
+          - app
 
     steps:
       - name: Checkout code
@@ -38,25 +37,24 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          registry-type: ${{ matrix.charts.type == 'pub' && 'public' || 'private' }}
+          registry-type: public
 
       - name: Environment
         env:
           REGISTRY_BASE: ${{ steps.ecr-login.outputs.registry }}
           REGISTRY_ALIAS: ${{ vars.AWS_ECR_PUBLIC_ALIAS }}
-          CHART: ${{ matrix.charts.name }}
-          TYPE: ${{ matrix.charts.type }}
+          CHART_NAME: ${{ matrix.charts }}
+          CHART_PATH: ./charts/${{ matrix.charts }}
         run: |
-          if [ "${TYPE}" == "pub" ]; then
-            OCI_REGISTRY="oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
-          else
-            OCI_REGISTRY="oci://${REGISTRY_BASE}/helm"
-          fi
+          OCI_REGISTRY="oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
           echo "OCI_REGISTRY=${OCI_REGISTRY}" >> $GITHUB_ENV
-          echo "CHART=${CHART}" >> $GITHUB_ENV
-          echo "TYPE=${TYPE}" >> $GITHUB_ENV
+          echo "CHART_NAME=${CHART_NAME}" >> $GITHUB_ENV
+          echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
 
       - name: Push Helm chart
         run: |
-          helm package ./charts/${TYPE}/${CHART}
-          helm push "${CHART}"-*.tgz "${OCI_REGISTRY}"
+          [ -d "${CHART_PATH}/charts" ] && rm -rf "${CHART_PATH}/charts"
+          [ -f "${CHART_PATH}/Chart.lock" ] && rm -f "${CHART_PATH}/Chart.lock"
+          helm dependency build "${CHART_PATH}"
+          helm package "${CHART_PATH}"
+          helm push "${CHART_NAME}"-*.tgz "${OCI_REGISTRY}"
