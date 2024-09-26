@@ -1,0 +1,7 @@
+---
+app-test:
+  fullnameOverride: app-test
+
+  image:
+    repository: traefik/whoami
+    tag: latest

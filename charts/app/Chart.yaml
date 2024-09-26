@@ -1,0 +1,7 @@
+---
+apiVersion: v2
+name: app
+description: Generic application chart
+type: application
+version: 0.0.1
+kubeVersion: ">=1.28.0-0"

@@ -32,12 +32,11 @@ jobs:
     strategy:
       matrix:
         charts:
-          - type: pub
-            name: app
+          - app
 
     env:
-      CHART_NAME: ${{ matrix.charts.name }}
-      CHART_PATH: ./charts/${{ matrix.charts.type }}/${{ matrix.charts.name }}.test
+      CHART_NAME: ${{ matrix.charts }}
+      CHART_PATH: ./charts/${{ matrix.charts }}.test
       SOURCE_YAML: ${{ matrix.charts }}.source.yaml
       TARGET_YAML: ${{ matrix.charts }}.target.yaml
       SOURCE_ARTIFACT: ${{ matrix.charts }}-source

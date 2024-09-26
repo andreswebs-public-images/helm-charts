@@ -1,13 +1,13 @@
-{{- define "base.hpa" -}}
+{{- define "app.hpa" -}}
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ template "base.name" . }}
-  namespace: {{ include "base.namespace" . }}
+  name: {{ template "app.fullname" . }}
+  namespace: {{ include "app.namespace" . }}
   labels:
-    {{- include "base.labels" . | nindent 4 }}
-    {{- with .Values.autoscaling.additionalLabels }}
+    {{- include "app.labels" . | nindent 4 }}
+    {{- with .Values.autoscaling.labels }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- if .Values.autoscaling.annotations }}
@@ -18,7 +18,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ template "base.name" . }}
+    name: {{ template "app.name" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

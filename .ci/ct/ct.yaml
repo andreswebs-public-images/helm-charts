@@ -5,5 +5,4 @@ lint-conf: .yamllint.yml
 validate-maintainers: false
 
 chart-dirs:
-  - charts/pub
-  - charts/prv
+  - charts

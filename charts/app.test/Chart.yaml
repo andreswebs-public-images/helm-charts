@@ -1,0 +1,12 @@
+---
+apiVersion: v2
+name: app-test
+description: Test Chart used to validate the base app Chart
+type: application
+version: 0.0.1
+appVersion: 0.0.1
+dependencies:
+  - alias: app-test
+    name: app
+    version: 0.0.1
+    repository: file://../app
