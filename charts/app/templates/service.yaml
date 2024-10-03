@@ -20,7 +20,7 @@ spec:
     {{- include "app.selectorLabels" . | nindent 4 }}
   ports:
     {{- if not .Values.service.ports -}}
-    {{- fail "service.ports are required" }}
+      {{- fail "service.ports are required" }}
     {{- end }}
     {{- toYaml .Values.service.ports | nindent 4 }}
 {{- end }}

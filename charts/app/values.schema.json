@@ -1,0 +1,184 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "autoscaling": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object"
+                },
+                "behavior": {
+                    "type": "object"
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "labels": {
+                    "type": "object"
+                },
+                "maxReplicas": {
+                    "type": "number"
+                },
+                "metrics": {
+                    "type": "object"
+                },
+                "minReplicas": {
+                    "type": "number"
+                }
+            }
+        },
+        "deployment": {
+            "type": "object",
+            "properties": {
+                "additionalContainers": {
+                    "type": "array"
+                },
+                "affinity": {
+                    "type": "object"
+                },
+                "annotations": {
+                    "type": "object"
+                },
+                "args": {
+                    "type": "array"
+                },
+                "command": {
+                    "type": "array"
+                },
+                "env": {
+                    "type": "array"
+                },
+                "envFrom": {
+                    "type": "array"
+                },
+                "labels": {
+                    "type": "object"
+                },
+                "livenessProbe": {
+                    "type": "object"
+                },
+                "ports": {
+                    "type": "array"
+                },
+                "readinessProbe": {
+                    "type": "object"
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "securityContext": {
+                    "type": "object"
+                },
+                "startupProbe": {
+                    "type": "object"
+                },
+                "strategy": {
+                    "type": "object"
+                },
+                "volumeMounts": {
+                    "type": "array"
+                },
+                "volumes": {
+                    "type": "array"
+                }
+            }
+        },
+        "fullnameOverride": {
+            "type": "string"
+        },
+        "image": {
+            "type": "object",
+            "properties": {
+                "digest": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "type": "string"
+                },
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "nameOverride": {
+            "type": "string"
+        },
+        "namespaceOverride": {
+            "type": "string"
+        },
+        "networkPolicy": {
+            "type": "object",
+            "properties": {
+                "egress": {
+                    "type": "object"
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "ingress": {
+                    "type": "object"
+                }
+            }
+        },
+        "pdb": {
+            "type": "object",
+            "properties": {
+                "enable": {
+                    "type": "boolean"
+                },
+                "maxUnavailable": {
+                    "type": "number"
+                },
+                "minAvailable": {
+                    "type": "number"
+                }
+            }
+        },
+        "rbac": {
+            "type": "object",
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "service": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object"
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "labels": {
+                    "type": "object"
+                },
+                "ports": {
+                    "type": "array"
+                }
+            }
+        },
+        "serviceAccount": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object"
+                },
+                "create": {
+                    "type": "boolean"
+                },
+                "labels": {
+                    "type": "object"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

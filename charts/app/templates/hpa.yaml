@@ -1,4 +1,4 @@
-{{- define "app.hpa" -}}
+{{- if and .Values.autoscaling (eq .Values.autoscaling.enable true) }}
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -10,21 +10,27 @@ metadata:
     {{- with .Values.autoscaling.labels }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- if .Values.autoscaling.annotations }}
+  {{- with .Values.autoscaling.annotations }}
   annotations:
-    {{- toYaml .Values.autoscaling.annotations | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ template "app.name" . }}
+  {{- if .Values.autoscaling.minReplicas }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
+  {{- end }}
+  {{- if .Values.autoscaling.maxReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  {{- end }}
+  {{- with .Values.autoscaling.metrics }}
   metrics:
-    {{- toYaml .Values.autoscaling.metrics | nindent 4 }}
-  {{- if .Values.autoscaling.behavior }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.autoscaling.behavior }}
   behavior:
-    {{- toYaml .Values.autoscaling.behavior | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}

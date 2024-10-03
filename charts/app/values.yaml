@@ -1,17 +1,30 @@
+# yaml-language-server: $schema=./values.schema.json
 ---
+fullnameOverride: ""
+
+nameOverride: ""
+
+namespaceOverride: ""
+
 image:
   repository: ""
   tag: ""
+  digest: ""
+  pullPolicy: ""
 
 serviceAccount:
   create: true
+  name: ""
+  labels: {}
+  annotations: {}
 
 rbac:
   create: true
 
 service:
   enable: true
-
+  labels: {}
+  annotations: {}
   ports:
     - name: http
       protocol: TCP
@@ -19,6 +32,9 @@ service:
       targetPort: 8080
 
 deployment:
+  labels: {}
+  annotations: {}
+
   command: []
   args: []
 
@@ -82,14 +98,15 @@ deployment:
     #   path: /livez
 
   resources:
-    limits:
-      cpu: 1
-      memory: 1Gi
-      ephemeral-storage: 1Gi
-    requests:
-      cpu: 0.5
-      memory: 512Mi
-      ephemeral-storage: 1Gi
+    {}
+    # limits:
+    #   cpu: 1
+    #   memory: 1Gi
+    #   ephemeral-storage: 1Gi
+    # requests:
+    #   cpu: 0.5
+    #   memory: 512Mi
+    #   ephemeral-storage: 1Gi
 
   volumeMounts: []
 
@@ -100,3 +117,15 @@ deployment:
 pdb:
   enable: true
   minAvailable: 1
+
+autoscaling:
+  enable: false
+  behavior: {}
+  metrics: {}
+  labels: {}
+  annotations: {}
+
+networkPolicy:
+  enable: false
+  ingress: {}
+  egress: {}
