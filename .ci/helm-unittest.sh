@@ -3,4 +3,4 @@ docker run \
     --rm \
     --interactive \
     --volume "$(pwd):/apps" \
-    helmunittest/helm-unittest charts/app
+    helmunittest/helm-unittest ${@}
