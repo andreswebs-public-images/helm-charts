@@ -25,10 +25,10 @@ repos:
         language: script
         pass_filenames: false
   - repo: https://github.com/norwoodj/helm-docs
-    rev: "v1.14.2"
+    rev: v1.14.2
     hooks:
       - id: helm-docs-container
         name: helm docs
         entry: jnorwood/helm-docs:latest
         args:
-          - --chart-search-root=charts
+          - --chart-search-root=.
