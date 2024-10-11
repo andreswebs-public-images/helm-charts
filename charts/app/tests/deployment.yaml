@@ -1,0 +1,19 @@
+---
+suite: test deployment
+templates:
+  - deployment.yaml
+tests:
+  - it: should work
+    set:
+      fullnameOverride: whoami
+      image.repository: traefik/whoami
+      image.tag: latest
+    asserts:
+      - isKind:
+          of: Deployment
+      - matchRegex:
+          path: metadata.name
+          pattern: ^whoami$
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: traefik/whoami:latest

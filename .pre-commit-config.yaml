@@ -1,18 +1,26 @@
+# https://pre-commit.com/#pre-commit-configyaml---hooks
+---
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
-  hooks:
-    - id: end-of-file-fixer
-    - id: trailing-whitespace
-    - id: check-case-conflict
-    - id: detect-private-key
-    - id: end-of-file-fixer
-    - id: mixed-line-ending
-    - id: trailing-whitespace
-- repo: local
-  hooks:
-    - id: chart-testing
-      name: Helm Chart Testing
-      entry: ./.ci/ct/ct.sh
-      language: script
-      pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: lint-charts
+        name: Lint All Charts
+        entry: ./.ci/ct.sh
+        language: script
+        pass_filenames: false
+      - id: test-app
+        name: Unit Tests charts/app
+        entry: ./.ci/helm-unittest.sh
+        args: [charts/app]
+        language: script
+        pass_filenames: false
