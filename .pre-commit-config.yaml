@@ -14,12 +14,12 @@ repos:
   - repo: local
     hooks:
       - id: lint-charts
-        name: Lint All Charts
+        name: lint all charts
         entry: ./.ci/ct.sh
         language: script
         pass_filenames: false
-      - id: test-app
-        name: Unit Tests charts/app
+      - id: test-app-chart
+        name: test charts/app
         entry: ./.ci/helm-unittest.sh
         args: [charts/app]
         language: script
@@ -30,5 +30,4 @@ repos:
       - id: helm-docs-container
         entry: jnorwood/helm-docs:latest
         args:
-          # Make the tool search for charts only under the `charts` directory
           - --chart-search-root=charts
