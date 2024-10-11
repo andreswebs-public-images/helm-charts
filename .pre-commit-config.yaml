@@ -31,4 +31,4 @@ repos:
         name: helm docs
         entry: jnorwood/helm-docs:latest
         args:
-          - --chart-search-root=.
+          - --chart-search-root=charts
