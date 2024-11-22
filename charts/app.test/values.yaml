@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../app/values.schema.json
 ---
 app-test:
   fullnameOverride: app-test
@@ -5,3 +6,35 @@ app-test:
   image:
     repository: traefik/whoami
     tag: latest
+
+  config:
+    example.js: |
+      window.config = {
+        TEST: 'ok',
+      };
+
+  ingress:
+    enable: true
+    ingressClassName: alb
+    annotations:
+      test: ok
+    tls:
+      - hosts:
+          - dev.example.com
+    httpHosts:
+      - host: dev.example.com
+        paths:
+          - path: /api
+            pathType: Prefix
+            servicePortNumber: 80
+
+  deployment:
+    volumeMounts:
+      - name: app-config
+        mountPath: /config/example.js
+        subPath: example.js
+
+    volumes:
+      - name: app-config
+        configMap:
+          name: app-config

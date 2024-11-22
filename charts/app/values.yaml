@@ -129,3 +129,13 @@ networkPolicy:
   enable: false
   ingress: {}
   egress: {}
+
+config: {}
+
+ingress:
+  enable: false
+  labels: {}
+  annotations: {}
+  ingressClassName: ""
+  tls: []
+  httpHosts: []

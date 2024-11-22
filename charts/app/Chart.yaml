@@ -3,5 +3,5 @@ apiVersion: v2
 name: app
 description: Generic application chart
 type: application
-version: 0.0.1
+version: 0.0.5
 kubeVersion: ">=1.29.0-0"

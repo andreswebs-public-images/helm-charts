@@ -1,6 +1,6 @@
 # app
 
-![Version: 0.0.1](https://img.shields.io/badge/Version-0.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.0.5](https://img.shields.io/badge/Version-0.0.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 Generic application chart
 
@@ -17,6 +17,7 @@ Kubernetes: `>=1.29.0-0`
 | autoscaling.enable | bool | `false` |  |
 | autoscaling.labels | object | `{}` |  |
 | autoscaling.metrics | object | `{}` |  |
+| config | object | `{}` |  |
 | deployment.additionalContainers | list | `[]` |  |
 | deployment.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].key | string | `"app.kubernetes.io/name"` |  |
 | deployment.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchExpressions[0].operator | string | `"In"` |  |
@@ -46,6 +47,12 @@ Kubernetes: `>=1.29.0-0`
 | image.pullPolicy | string | `""` |  |
 | image.repository | string | `""` |  |
 | image.tag | string | `""` |  |
+| ingress.annotations | object | `{}` |  |
+| ingress.enable | bool | `false` |  |
+| ingress.httpHosts | list | `[]` |  |
+| ingress.ingressClassName | string | `""` |  |
+| ingress.labels | object | `{}` |  |
+| ingress.tls | list | `[]` |  |
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
 | networkPolicy.egress | object | `{}` |  |

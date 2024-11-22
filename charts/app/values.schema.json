@@ -180,6 +180,73 @@
                     "type": "string"
                 }
             }
+        },
+        "config": {
+            "type": "object"
+        },
+        "ingress": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object"
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "httpHosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "host": {
+                                "type": "string"
+                            },
+                            "paths": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {
+                                            "type": "string"
+                                        },
+                                        "pathType": {
+                                            "type": "string"
+                                        },
+                                        "servicePortNumber": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": ["path", "servicePortNumber"]
+                                }
+                            }
+                        },
+                        "required": ["host", "paths"]
+                    }
+                },
+                "ingressClassName": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "object"
+                },
+                "tls": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "hosts": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "secretName": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
