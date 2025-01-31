@@ -102,6 +102,12 @@ jobs:
             -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
             ${{ env.TARGET_YAML }}
 
+      - name: Upload target artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TARGET_ARTIFACT }}
+          path: ${{ env.TARGET_YAML }}
+
       - name: Install difftastic
         uses: andreswebs/gh-actions/.github/actions/install-difftastic@main
 
@@ -109,8 +115,8 @@ jobs:
         run: |
           difft "${SOURCE_YAML}" "${TARGET_YAML}" | tee "${CHART_NAME}.diff.txt"
 
-      - name: Report
-        uses: hightouchinc/github-actions/.github/actions/file-report@main
-        with:
-          source-txt-file: ${{ env.CHART_NAME }}.diff.txt
-          environment: ${{ env.CHART_NAME }}
+      # - name: Report
+      #   uses: hightouchinc/github-actions/.github/actions/file-report@main
+      #   with:
+      #     source-txt-file: ${{ env.CHART_NAME }}.diff.txt
+      #     environment: ${{ env.CHART_NAME }}

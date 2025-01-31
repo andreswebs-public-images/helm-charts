@@ -7,4 +7,5 @@ docker run \
     --tty \
     --workdir="/data" \
     --volume "$(pwd):/data" \
-    "quay.io/helmpack/chart-testing:${CT_VER}" ct lint --config .ci/ct/ct.yaml --all
+    "quay.io/helmpack/chart-testing:${CT_VER}" \
+    ct lint --config .ci/ct/ct.yaml --all
