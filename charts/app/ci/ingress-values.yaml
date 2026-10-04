@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../values.schema.json
+---
+image:
+  repository: traefik/whoami
+  tag: v1.11.0
+
+ingress:
+  enabled: true
+  ingressClassName: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    example.com/release: "{{ .Release.Name }}"
+  tls:
+    - hosts:
+        - "*.example.com"
+        - dev.example.com
+      secretName: example-tls
+  httpHosts:
+    - host: "*.example.com"
+      paths:
+        - path: /
+          servicePortNumber: 80
+    - host: dev.example.com
+      paths:
+        - path: /api
+          pathType: Exact
+          servicePortNumber: 80

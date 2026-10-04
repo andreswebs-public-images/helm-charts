@@ -1,0 +1,77 @@
+---
+suite: ingress
+templates:
+  - ingress.yaml
+values:
+  - ./values/base.yaml
+tests:
+  - it: is not rendered by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: fails when enabled without hosts
+    set:
+      ingress.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: ingress.httpHosts must be set
+
+  - it: renders wildcard hosts and defaults pathType to Prefix
+    set:
+      ingress.enabled: true
+      ingress.ingressClassName: nginx
+      ingress.tls:
+        - hosts:
+            - "*.example.com"
+          secretName: wildcard-tls
+      ingress.httpHosts:
+        - host: "*.example.com"
+          paths:
+            - path: /
+              servicePortNumber: 80
+            - path: /exact
+              pathType: Exact
+              servicePortNumber: 8080
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: "*.example.com"
+      - equal:
+          path: spec.tls[0].secretName
+          value: wildcard-tls
+      - equal:
+          path: spec.rules[0].host
+          value: "*.example.com"
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[1].pathType
+          value: Exact
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-app
+      - equal:
+          path: spec.rules[0].http.paths[1].backend.service.port.number
+          value: 8080
+
+  - it: renders templated annotations
+    set:
+      ingress.enabled: true
+      ingress.annotations:
+        example.com/release: "{{ .Release.Name }}"
+      ingress.httpHosts:
+        - host: a.example.com
+          paths:
+            - path: /
+              servicePortNumber: 80
+    asserts:
+      - equal:
+          path: metadata.annotations["example.com/release"]
+          value: RELEASE-NAME

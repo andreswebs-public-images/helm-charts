@@ -1,122 +1,155 @@
 ---
 name: Pull Request
-on:
-  workflow_dispatch:
 
+permissions:
+  contents: read
+
+"on":
   pull_request:
     branches: [main]
+
+env:
+  HELM_VERSION: v4.3.0
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: 3.x
+
       - run: python -m pip install pre-commit
-        shell: bash
-      - run: python -m pip freeze --local
-        shell: bash
-      - uses: actions/cache@v4
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
-      - run: pre-commit run --show-diff-on-failure --color=always ${{ inputs.extra_args }}
-        shell: bash
+
+      - run: pre-commit run --all-files --show-diff-on-failure --color=always
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
+
+      - name: List changed charts
+        id: changed
+        run: |
+          changed="$(ct list-changed --config .ci/ct/ct.yaml)"
+          if [ -n "${changed}" ]; then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Lint changed charts and check version increments
+        if: steps.changed.outputs.changed == 'true'
+        run: ct lint --config .ci/ct/ct.yaml
+
+  charts:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: List charts
+        id: list
+        run: |
+          matrix="$(find charts -mindepth 2 -maxdepth 2 -name Chart.yaml -printf '%h\n' | xargs -n1 basename | sort | jq -R . | jq -sc .)"
+          echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
 
   diff:
     runs-on: ubuntu-latest
-    needs: [pre-commit]
+    needs: [charts]
 
     strategy:
+      fail-fast: false
       matrix:
-        charts:
-          - app
+        chart: ${{ fromJSON(needs.charts.outputs.matrix) }}
 
     env:
-      CHART_NAME: ${{ matrix.charts }}
-      CHART_PATH: ./charts/${{ matrix.charts }}.test
-      SOURCE_YAML: ${{ matrix.charts }}.source.yaml
-      TARGET_YAML: ${{ matrix.charts }}.target.yaml
-      SOURCE_ARTIFACT: ${{ matrix.charts }}-source
-      TARGET_ARTIFACT: ${{ matrix.charts }}-target
-
-      K8S_SCHEMAS_EXTERNAL_SECRET: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1beta1.json
+      CHART_NAME: ${{ matrix.chart }}
+      DIFFT_VERSION: 0.71.0
 
     steps:
-      - name: Checkout source branch
-        uses: actions/checkout@v4
+      - name: Checkout head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
 
-      - name: Source Template
+      - name: Checkout base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Render scenarios
         run: |
-          [ -d "${CHART_PATH}/charts" ] && rm -rf "${CHART_PATH}/charts"
-          [ -f "${CHART_PATH}/Chart.lock" ] && rm -f "${CHART_PATH}/Chart.lock"
-          helm dependency build "${CHART_PATH}"
-          helm template "${CHART_PATH}" | tee "${SOURCE_YAML}"
+          render() {
+            local tree="$1"
+            local chart_dir="${tree}/charts/${CHART_NAME}"
+            local out_dir="rendered/${tree}"
+            mkdir -p "${out_dir}"
+            if [ ! -d "${chart_dir}" ]; then
+              echo "chart ${CHART_NAME} does not exist in ${tree}; nothing to render"
+              return 0
+            fi
+            local scenarios=("${chart_dir}"/ci/*-values.yaml)
+            if [ ! -e "${scenarios[0]}" ]; then
+              helm template "${CHART_NAME}" "${chart_dir}" > "${out_dir}/default.yaml"
+              return 0
+            fi
+            local file name
+            for file in "${scenarios[@]}"; do
+              name="$(basename "${file}" -values.yaml)"
+              helm template "${CHART_NAME}" "${chart_dir}" --values "${file}" > "${out_dir}/${name}.yaml"
+            done
+          }
+          render head
+          render base
 
-      - name: Validate Source
-        uses: docker://ghcr.io/yannh/kubeconform:latest
+      - name: Validate head manifests
+        uses: docker://ghcr.io/yannh/kubeconform:v0.8.0
         with:
           entrypoint: /kubeconform
-          args: |
-            -summary \
-            -output json \
-            -schema-location default \
-            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
-            ${{ env.SOURCE_YAML }}
+          args: -summary -strict -schema-location default rendered/head
 
-      - name: Upload source artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload rendered manifests
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ env.SOURCE_ARTIFACT }}
-          path: ${{ env.SOURCE_YAML }}
-
-      - name: Checkout target branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.base.ref }}
-
-      - name: Download source artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.SOURCE_ARTIFACT }}
-
-      - name: Target Template
-        run: |
-          [ -d "${CHART_PATH}/charts" ] && rm -rf "${CHART_PATH}/charts"
-          [ -f "${CHART_PATH}/Chart.lock" ] && rm -f "${CHART_PATH}/Chart.lock"
-          helm dependency build "${CHART_PATH}"
-          helm template "${CHART_PATH}" | tee "${TARGET_YAML}"
-
-      - name: Validate Target
-        uses: docker://ghcr.io/yannh/kubeconform:latest
-        with:
-          entrypoint: /kubeconform
-          args: |
-            -summary \
-            -output json \
-            -schema-location default \
-            -schema-location ${{ env.K8S_SCHEMAS_EXTERNAL_SECRET }} \
-            ${{ env.TARGET_YAML }}
-
-      - name: Upload target artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.TARGET_ARTIFACT }}
-          path: ${{ env.TARGET_YAML }}
+          name: rendered-${{ env.CHART_NAME }}
+          path: rendered
 
       - name: Install difftastic
-        uses: andreswebs/gh-actions/.github/actions/install-difftastic@main
-
-      - name: Diff
         run: |
-          difft "${SOURCE_YAML}" "${TARGET_YAML}" | tee "${CHART_NAME}.diff.txt"
+          curl -fsSL -o difft.tar.gz \
+            "https://github.com/Wilfred/difftastic/releases/download/${DIFFT_VERSION}/difft-${DIFFT_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xzf difft.tar.gz difft
+          install -m 0755 difft /usr/local/bin/difft
 
-      # - name: Report
-      #   uses: hightouchinc/github-actions/.github/actions/file-report@main
-      #   with:
-      #     source-txt-file: ${{ env.CHART_NAME }}.diff.txt
-      #     environment: ${{ env.CHART_NAME }}
+      - name: Diff rendered manifests
+        run: |
+          {
+            echo "## Rendered manifest diff: ${CHART_NAME}"
+            echo
+            echo "Base to head, one section per scenario. Empty output means no change."
+            echo
+            echo '```text'
+            difft --color never --display inline --skip-unchanged rendered/base rendered/head || true
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"

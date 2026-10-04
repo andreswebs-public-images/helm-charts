@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "app.name" -}}
-{{- default $.Chart.Name $.Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,14 +11,14 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "app.fullname" -}}
-{{- if $.Values.fullnameOverride }}
-{{- $.Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default $.Chart.Name $.Values.nameOverride }}
-{{- if contains $name $.Release.Name }}
-{{- $.Release.Name | trunc 63 | trimSuffix "-" }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" $.Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -27,7 +27,7 @@ If release name contains chart name it will be used as a full name.
 Define the version of the chart/application.
 */}}
 {{- define "app.version" -}}
-{{- $version := default "" $.Chart.AppVersion -}}
+{{- $version := default "" .Chart.AppVersion -}}
 {{- regexReplaceAll "[^a-zA-Z0-9_\\.\\-]" $version "-" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -35,13 +35,13 @@ Define the version of the chart/application.
 Create chart name and version as used by the chart label.
 */}}
 {{- define "app.chart" -}}
-{{- printf "%s-%s" $.Chart.Name $.Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Renders a value that contains a template.
+Render a value that may contain templates. Strings are rendered as is; maps and lists are rendered via toYaml.
 Usage:
-{{ include "app.tplvalues.render" ( dict "value" $.Values.path.to.the.Value "context" $) }}
+{{ include "app.tplvalues.render" (dict "value" .Values.path.to.value "context" $) }}
 */}}
 {{- define "app.tplvalues.render" -}}
 {{- if typeIs "string" .value }}
@@ -52,11 +52,11 @@ Usage:
 {{- end -}}
 
 {{/*
-Selector labels
+Selector labels. These are immutable on a Deployment; changing them requires recreating the release.
 */}}
 {{- define "app.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "app.fullname" . }}
-app.kubernetes.io/instance: {{ $.Release.Name }}
+app.kubernetes.io/name: {{ include "app.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
@@ -68,38 +68,58 @@ helm.sh/chart: {{ include "app.chart" . }}
 {{- with include "app.version" . }}
 app.kubernetes.io/version: {{ quote . }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ $.Release.Service }}
-app.kubernetes.io/part-of: {{ include "app.fullname" . }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Render metadata labels: common labels plus user-supplied templated labels.
+Usage:
+{{ include "app.metadata.labels" (dict "extra" .Values.x.labels "context" $) }}
+*/}}
+{{- define "app.metadata.labels" -}}
+{{ include "app.labels" .context }}
+{{- with .extra }}
+{{ include "app.tplvalues.render" (dict "value" . "context" $.context) }}
+{{- end }}
 {{- end }}
 
 {{/*
 Allow the release namespace to be overridden
 */}}
 {{- define "app.namespace" -}}
-{{- default $.Release.Namespace $.Values.namespaceOverride -}}
+{{- default .Release.Namespace .Values.namespaceOverride -}}
 {{- end -}}
 
 {{/*
 Create the name of the service account
 */}}
 {{- define "app.serviceAccountName" -}}
-{{- if $.Values.serviceAccount.create -}}
-{{ default (include "app.fullname" .) $.Values.serviceAccount.name }}
+{{- if .Values.serviceAccount.create -}}
+{{ default (include "app.fullname" .) .Values.serviceAccount.name }}
 {{- else -}}
-{{ default "default" $.Values.serviceAccount.name }}
+{{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
 
 {{/*
-Get the main app image
+Get the main app image. A repository and either a digest or a tag are required.
 */}}
 {{- define "app.image" -}}
-{{- $repository := required "image.repository must be set" $.Values.image.repository -}}
-{{- $image := $repository -}}
-{{- if $.Values.image.digest -}}
-{{- $image = printf "%s@%s" $repository $.Values.image.digest -}}
-{{- else if $.Values.image.tag -}}
-{{- $image = printf "%s:%s" $repository $.Values.image.tag -}}
+{{- $repository := required "image.repository must be set" .Values.image.repository -}}
+{{- if .Values.image.digest -}}
+{{- printf "%s@%s" $repository .Values.image.digest -}}
+{{- else if .Values.image.tag -}}
+{{- printf "%s:%s" $repository .Values.image.tag -}}
+{{- else -}}
+{{- fail "either image.tag or image.digest must be set" -}}
 {{- end -}}
-{{ $image }}
+{{- end -}}
+
+{{/*
+Whether a PodDisruptionBudget makes sense: more than one replica, or autoscaling.
+*/}}
+{{- define "app.pdb.applicable" -}}
+{{- if and .Values.pdb.enabled (or .Values.autoscaling.enabled (gt (int .Values.deployment.replicas) 1)) -}}
+true
+{{- end -}}
 {{- end -}}

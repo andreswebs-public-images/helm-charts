@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=../values.schema.json
+---
+image:
+  repository: traefik/whoami
+  tag: v1.11.0
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+
+pdb:
+  minAvailable: null
+  maxUnavailable: 1
+
+deployment:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      memory: 64Mi

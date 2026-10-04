@@ -2,7 +2,9 @@
 chart-yaml-schema: .ci/ct/chart.schema.yaml
 lint-conf: .yamllint.yml
 
-validate-maintainers: false
+target-branch: main
+validate-maintainers: true
+check-version-increment: true
 
 chart-dirs:
   - charts

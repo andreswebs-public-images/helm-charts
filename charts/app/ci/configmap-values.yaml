@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../values.schema.json
+---
+image:
+  repository: traefik/whoami
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+config:
+  PORT: 8080
+  DEBUG: true
+  example.js: |
+    window.config = {
+      TEST: 'ok',
+    };
+
+deployment:
+  podAnnotations:
+    example.com/instance: "{{ .Release.Name }}"
+  envFrom:
+    - configMapRef:
+        name: '{{ include "app.fullname" . }}'
+  volumeMounts:
+    - name: config
+      mountPath: /config/example.js
+      subPath: example.js
+  volumes:
+    - name: config
+      configMap:
+        name: '{{ include "app.fullname" . }}'

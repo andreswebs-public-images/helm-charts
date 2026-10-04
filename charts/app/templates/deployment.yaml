@@ -5,77 +5,106 @@ metadata:
   name: {{ include "app.fullname" . }}
   namespace: {{ include "app.namespace" . }}
   labels:
-    {{- include "app.labels" . | nindent 4 }}
-    {{- with .Values.deployment.labels }}
-      {{- tpl (toYaml .) $ | nindent 4 }}
-    {{- end -}}
+    {{- include "app.metadata.labels" (dict "extra" .Values.deployment.labels "context" $) | nindent 4 }}
   {{- with .Values.deployment.annotations }}
   annotations:
-    {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
   {{- end }}
-
 spec:
-  replicas: {{ .Values.deployment.replicas | default 1 }}
-  selector:
-    matchLabels:
-      {{- include "app.selectorLabels" . | nindent 6 }}
-
-  {{- with .Values.deployment.strategy }}
-  strategy:
-    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.deployment.replicas }}
   {{- end }}
-
   {{- if not (kindIs "invalid" .Values.deployment.revisionHistoryLimit) }}
   revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit }}
   {{- end }}
-
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  {{- with .Values.deployment.strategy }}
+  strategy:
+    {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:
-        {{- include "app.labels" . | nindent 8 }}
-        {{- if .Values.deployment.podLabels }}
-        {{- tpl (toYaml .Values.deployment.podLabels) . | nindent 8 }}
+        {{- include "app.selectorLabels" . | nindent 8 }}
+        {{- with .Values.deployment.podLabels }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
         {{- end }}
+      {{- if or .Values.config .Values.deployment.podAnnotations }}
+      annotations:
+        {{- if .Values.config }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.deployment.podAnnotations }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+        {{- end }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "app.serviceAccountName" . }}
-      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds | default 30 }}
-      {{- with .Values.deployment.initContainers }}
-      initContainers:
-        {{- tpl (toYaml .) $ | nindent 8 }}
-      {{- end -}}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
-        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.tolerations }}
+      tolerations:
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
       {{- end }}
       {{- with .Values.deployment.affinity }}
       affinity:
-        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
       {{- end }}
       {{- with .Values.deployment.topologySpreadConstraints }}
       topologySpreadConstraints:
-        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
       {{- end }}
-      {{- with .Values.deployment.securityContext }}
+      {{- with .Values.deployment.hostAliases }}
+      hostAliases:
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.deployment.dnsConfig }}
+      dnsConfig:
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-
+      {{- with .Values.deployment.initContainers }}
+      initContainers:
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}
       {{- with .Values.deployment.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
       {{- end }}
-
       containers:
         - name: {{ include "app.name" . }}
           image: {{ include "app.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          {{- with .Values.deployment.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.deployment.command }}
           command:
-            {{- toYaml . | nindent 12 }}
+            {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.deployment.args }}
           args:
-            {{- toYaml . | nindent 12 }}
+            {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.deployment.ports }}
           ports:
@@ -83,11 +112,15 @@ spec:
           {{- end }}
           {{- with .Values.deployment.envFrom }}
           envFrom:
-            {{- toYaml . | nindent 12 }}
+            {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.deployment.env }}
           env:
-            {{- toYaml . | nindent 12 }}
+            {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
+          {{- end }}
+          {{- with .Values.deployment.lifecycle }}
+          lifecycle:
+            {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.deployment.startupProbe }}
           startupProbe:
@@ -103,12 +136,12 @@ spec:
           {{- end }}
           {{- with .Values.deployment.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
           {{- end }}
           {{- with .Values.deployment.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
         {{- with .Values.deployment.additionalContainers }}
-          {{- toYaml . | nindent 8 }}
+        {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
         {{- end }}

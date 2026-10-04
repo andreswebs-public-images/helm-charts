@@ -1,10 +1,15 @@
-{{- if and .Values.rbac (eq .Values.rbac.create true) }}
+{{- if .Values.rbac.create }}
+{{- if not .Values.rbac.rules }}
+{{- fail "rbac.rules must be set when rbac.create is true" }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "app.serviceAccountName" . }}
+  name: {{ include "app.fullname" . }}
   namespace: {{ include "app.namespace" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+rules:
+  {{- include "app.tplvalues.render" (dict "value" .Values.rbac.rules "context" $) | nindent 2 }}
 {{- end }}

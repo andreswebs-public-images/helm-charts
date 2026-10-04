@@ -1,0 +1,48 @@
+---
+suite: horizontalpodautoscaler
+templates:
+  - hpa.yaml
+values:
+  - ./values/base.yaml
+tests:
+  - it: is not rendered by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: targets the Deployment by its full name
+    set:
+      autoscaling.enabled: true
+      fullnameOverride: whoami
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: whoami
+      - equal:
+          path: metadata.name
+          value: whoami
+
+  - it: renders replica bounds and list-typed metrics
+    set:
+      autoscaling.enabled: true
+      autoscaling.minReplicas: 2
+      autoscaling.maxReplicas: 5
+      autoscaling.metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 70
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 5
+      - equal:
+          path: spec.metrics[0].resource.name
+          value: cpu

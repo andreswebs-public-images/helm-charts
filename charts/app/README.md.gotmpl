@@ -1,0 +1,65 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+## Usage
+
+The chart is published as an OCI artifact. Set the image and install:
+
+```sh
+helm install "${RELEASE_NAME}" "oci://public.ecr.aws/${ECR_PUBLIC_ALIAS}/charts/app" \
+  --version "{{ template "chart.version" . }}" \
+  --set image.repository="${IMAGE_REPOSITORY}" \
+  --set image.tag="${IMAGE_TAG}"
+```
+
+`image.repository` and one of `image.tag` or `image.digest` are required.
+
+## Defaults worth knowing
+
+- The pod and container security contexts satisfy the restricted Pod Security
+  Standard. Images that run as root must set
+  `deployment.podSecurityContext.runAsNonRoot: false`, or set
+  `deployment.podSecurityContext.runAsUser` when the image has no numeric `USER`.
+- The ServiceAccount token is not mounted unless
+  `serviceAccount.automountServiceAccountToken` is `true`.
+- A PodDisruptionBudget is only rendered when `deployment.replicas` is greater
+  than one or autoscaling is enabled. `pdb.minAvailable` and
+  `pdb.maxUnavailable` are mutually exclusive; set the unused one to `null`.
+- When `autoscaling.enabled` is `true`, `deployment.replicas` is not rendered.
+- Entries under `config` become a ConfigMap named after the release. Scalars are
+  converted to strings. A checksum annotation on the pod template triggers a
+  rollout when the ConfigMap changes.
+- Values documented as "rendered as a template" accept Helm template
+  expressions, for example `'{{ "{{" }} include "app.fullname" . {{ "}}" }}'`.
+
+## Upgrading
+
+### To 0.1.0
+
+This release changes the selector labels and renames several values. A release
+installed from 0.0.x cannot be upgraded in place because Deployment selectors
+are immutable: uninstall the 0.0.x release and install 0.1.0.
+
+- `app.kubernetes.io/name` is now the chart (or `nameOverride`) name instead of
+  the full release name. `app.kubernetes.io/part-of` is no longer set.
+- `*.enable` keys are renamed to `*.enabled` (`service`, `pdb`, `autoscaling`,
+  `networkPolicy`, `ingress`).
+- `deployment.securityContext` now configures the container. The pod-level
+  context moved to `deployment.podSecurityContext`. Both default to restricted
+  settings.
+- `rbac.create` defaults to `false` and requires `rbac.rules` when enabled.
+- `image.tag` or `image.digest` is required; there is no implicit `latest`.
+- `autoscaling.metrics`, `networkPolicy.ingress` and `networkPolicy.egress` are
+  lists.
+- The default pod anti-affinity is preferred rather than required.
+- `ingress.httpHosts[].paths[].pathType` defaults to `Prefix`.
+- Unknown values keys are rejected by the schema.
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}

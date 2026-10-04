@@ -1,0 +1,36 @@
+---
+suite: configmap
+templates:
+  - configmap.yaml
+values:
+  - ./values/base.yaml
+tests:
+  - it: is not rendered when config is empty
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: converts scalar values to strings
+    set:
+      config:
+        PORT: 8080
+        DEBUG: true
+        NAME: plain
+        file.txt: |
+          line one
+          line two
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: data.PORT
+          value: "8080"
+      - equal:
+          path: data.DEBUG
+          value: "true"
+      - equal:
+          path: data.NAME
+          value: plain
+      - equal:
+          path: data["file.txt"]
+          value: "line one\nline two\n"

@@ -1,4 +1,12 @@
-{{- if and .Values.pdb (eq .Values.pdb.enable true) }}
+{{- if include "app.pdb.applicable" . }}
+{{- $minSet := not (kindIs "invalid" .Values.pdb.minAvailable) }}
+{{- $maxSet := not (kindIs "invalid" .Values.pdb.maxUnavailable) }}
+{{- if and $minSet $maxSet }}
+{{- fail "pdb.minAvailable and pdb.maxUnavailable are mutually exclusive; set one of them to null" }}
+{{- end }}
+{{- if not (or $minSet $maxSet) }}
+{{- fail "one of pdb.minAvailable or pdb.maxUnavailable must be set" }}
+{{- end }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -6,15 +14,15 @@ metadata:
   name: {{ include "app.fullname" . }}
   namespace: {{ include "app.namespace" . }}
   labels:
-    {{- include "app.labels" . | nindent 4 }}
+    {{- include "app.metadata.labels" (dict "extra" .Values.pdb.labels "context" $) | nindent 4 }}
+  {{- with .Values.pdb.annotations }}
+  annotations:
+    {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+  {{- end }}
 spec:
-  {{- if not (or .Values.pdb.minAvailable .Values.pdb.maxUnavailable) }}
-    {{- fail "Either pdb.minAvailable or pdb.maxUnavailable must be defined" }}
-  {{- end }}
-  {{- if .Values.pdb.minAvailable }}
+  {{- if $minSet }}
   minAvailable: {{ .Values.pdb.minAvailable }}
-  {{- end }}
-  {{- if .Values.pdb.maxUnavailable }}
+  {{- else }}
   maxUnavailable: {{ .Values.pdb.maxUnavailable }}
   {{- end }}
   selector:

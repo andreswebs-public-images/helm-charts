@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../values.schema.json
+---
+image:
+  repository: traefik/whoami
+  tag: v1.11.0
+
+deployment:
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault

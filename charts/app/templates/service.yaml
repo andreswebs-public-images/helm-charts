@@ -1,26 +1,23 @@
-{{- if and .Values.service (eq .Values.service.enable true) }}
+{{- if .Values.service.enabled }}
+{{- if not .Values.service.ports }}
+{{- fail "service.ports must be set when service.enabled is true" }}
+{{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "app.fullname" . }}
-  namespace: {{ template "app.namespace" $ }}
+  namespace: {{ include "app.namespace" . }}
   labels:
-  {{- include "app.labels" . | nindent 4 }}
-  {{- with .Values.service.labels }}
-    {{- tpl (toYaml .) $ | nindent 4 }}
-  {{- end }}
+    {{- include "app.metadata.labels" (dict "extra" .Values.service.labels "context" $) | nindent 4 }}
   {{- with .Values.service.annotations }}
   annotations:
-    {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- include "app.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
   {{- end }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.service.type }}
   selector:
     {{- include "app.selectorLabels" . | nindent 4 }}
   ports:
-    {{- if not .Values.service.ports -}}
-      {{- fail "service.ports are required" }}
-    {{- end }}
-    {{- toYaml .Values.service.ports | nindent 4 }}
+    {{- include "app.tplvalues.render" (dict "value" .Values.service.ports "context" $) | nindent 4 }}
 {{- end }}

@@ -1,0 +1,71 @@
+---
+suite: poddisruptionbudget
+templates:
+  - pdb.yaml
+values:
+  - ./values/base.yaml
+tests:
+  - it: is not rendered for a single replica
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is rendered with minAvailable for multiple replicas
+    set:
+      deployment.replicas: 2
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+      - notExists:
+          path: spec.maxUnavailable
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: app
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: is rendered when autoscaling is enabled
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: is not rendered when disabled
+    set:
+      pdb.enabled: false
+      deployment.replicas: 3
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders maxUnavailable when minAvailable is nulled
+    set:
+      deployment.replicas: 3
+      pdb.minAvailable: null
+      pdb.maxUnavailable: 25%
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 25%
+      - notExists:
+          path: spec.minAvailable
+
+  - it: fails when both minAvailable and maxUnavailable are set
+    set:
+      deployment.replicas: 3
+      pdb.maxUnavailable: 1
+    asserts:
+      - failedTemplate:
+          errorPattern: mutually exclusive
+
+  - it: fails when neither is set
+    set:
+      deployment.replicas: 3
+      pdb.minAvailable: null
+    asserts:
+      - failedTemplate:
+          errorPattern: one of pdb.minAvailable or pdb.maxUnavailable must be set

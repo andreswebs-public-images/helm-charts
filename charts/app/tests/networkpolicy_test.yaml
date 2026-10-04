@@ -1,0 +1,54 @@
+---
+suite: networkpolicy
+templates:
+  - networkpolicy.yaml
+values:
+  - ./values/base.yaml
+tests:
+  - it: is not rendered by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: fails when enabled without rules
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: at least one of networkPolicy.ingress or networkPolicy.egress
+
+  - it: accepts list-typed ingress rules and sets policyTypes accordingly
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.ingress:
+        - from:
+            - podSelector: {}
+          ports:
+            - port: 8080
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.policyTypes
+          value: [Ingress]
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 8080
+      - notExists:
+          path: spec.egress
+
+  - it: renders templated egress rules
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress:
+        - to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: '{{ include "app.name" . }}'
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value: [Egress]
+      - equal:
+          path: spec.egress[0].to[0].podSelector.matchLabels["app.kubernetes.io/name"]
+          value: app

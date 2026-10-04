@@ -1,11 +1,11 @@
 ---
-name: Helm Chart CI
+name: Publish Charts
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
-on:
+"on":
   workflow_dispatch:
 
   push:
@@ -14,47 +14,121 @@ on:
     paths:
       - "charts/**"
 
+env:
+  HELM_VERSION: v4.3.0
+
 jobs:
   charts:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: List charts
+        id: list
+        run: |
+          matrix="$(find charts -mindepth 2 -maxdepth 2 -name Chart.yaml -printf '%h\n' | xargs -n1 basename | sort | jq -R . | jq -sc .)"
+          echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [charts]
 
     strategy:
+      fail-fast: false
       matrix:
-        charts:
-          - app
+        chart: ${{ fromJSON(needs.charts.outputs.matrix) }}
+
+    env:
+      CHART_NAME: ${{ matrix.chart }}
+      CHART_PATH: charts/${{ matrix.chart }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_IAM_ROLE_ARN }}
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR Public
         id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
         with:
           registry-type: public
 
-      - name: Environment
+      - name: Resolve chart version and registry
+        id: chart
         env:
           REGISTRY_BASE: ${{ steps.ecr-login.outputs.registry }}
           REGISTRY_ALIAS: ${{ vars.AWS_ECR_PUBLIC_ALIAS }}
-          CHART_NAME: ${{ matrix.charts }}
-          CHART_PATH: ./charts/${{ matrix.charts }}
         run: |
-          OCI_REGISTRY="oci://${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
-          echo "OCI_REGISTRY=${OCI_REGISTRY}" >> $GITHUB_ENV
-          echo "CHART_NAME=${CHART_NAME}" >> $GITHUB_ENV
-          echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
+          version="$(helm show chart "${CHART_PATH}" | yq '.version')"
+          repository="${REGISTRY_BASE}/${REGISTRY_ALIAS}/charts"
+          {
+            echo "version=${version}"
+            echo "repository=${repository}"
+            echo "tag=${CHART_NAME}-${version}"
+          } >> "${GITHUB_OUTPUT}"
 
-      - name: Push Helm chart
+      - name: Check whether the version is already published
+        id: exists
+        env:
+          REPOSITORY: ${{ steps.chart.outputs.repository }}
+          VERSION: ${{ steps.chart.outputs.version }}
         run: |
-          [ -d "${CHART_PATH}/charts" ] && rm -rf "${CHART_PATH}/charts"
-          [ -f "${CHART_PATH}/Chart.lock" ] && rm -f "${CHART_PATH}/Chart.lock"
-          helm dependency build "${CHART_PATH}"
+          if helm show chart "oci://${REPOSITORY}/${CHART_NAME}" --version "${VERSION}" > /dev/null 2>&1; then
+            echo "${CHART_NAME} ${VERSION} is already published; skipping"
+            echo "published=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "published=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Package and push
+        id: push
+        if: steps.exists.outputs.published == 'false'
+        env:
+          REPOSITORY: ${{ steps.chart.outputs.repository }}
+          VERSION: ${{ steps.chart.outputs.version }}
+        run: |
           helm package "${CHART_PATH}"
-          helm push "${CHART_NAME}"-*.tgz "${OCI_REGISTRY}"
+          helm push "${CHART_NAME}-${VERSION}.tgz" "oci://${REPOSITORY}" 2>&1 | tee push.log
+          digest="$(sed -n 's/^Digest: //p' push.log)"
+          if [ -z "${digest}" ]; then
+            echo "could not determine pushed digest" >&2
+            exit 1
+          fi
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+
+      - name: Sign
+        if: steps.exists.outputs.published == 'false'
+        env:
+          REPOSITORY: ${{ steps.chart.outputs.repository }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${REPOSITORY}/${CHART_NAME}@${DIGEST}"
+
+      - name: Create GitHub release
+        if: steps.exists.outputs.published == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.chart.outputs.tag }}
+          VERSION: ${{ steps.chart.outputs.version }}
+          REPOSITORY: ${{ steps.chart.outputs.repository }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          if gh release view "${TAG}" > /dev/null 2>&1; then
+            echo "release ${TAG} already exists; skipping"
+            exit 0
+          fi
+          gh release create "${TAG}" "${CHART_NAME}-${VERSION}.tgz" \
+            --target "${GITHUB_SHA}" \
+            --title "${CHART_NAME} ${VERSION}" \
+            --notes "Published to oci://${REPOSITORY}/${CHART_NAME}:${VERSION} (${DIGEST}). See the chart README for upgrade notes."

@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../values.schema.json
+---
+image:
+  repository: traefik/whoami
+  tag: v1.11.0
+
+imagePullSecrets:
+  - name: registry-credentials
+
+serviceAccount:
+  automountServiceAccountToken: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/example
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: [configmaps]
+      verbs: [get, list, watch]
+
+deployment:
+  priorityClassName: system-cluster-critical
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: apps
+      effect: NoSchedule
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: '{{ include "app.name" . }}'

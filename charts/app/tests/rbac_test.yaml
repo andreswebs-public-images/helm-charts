@@ -1,0 +1,50 @@
+---
+suite: rbac
+templates:
+  - role.yaml
+  - rolebinding.yaml
+values:
+  - ./values/base.yaml
+tests:
+  - it: is not rendered by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: fails when enabled without rules
+    set:
+      rbac.create: true
+    template: role.yaml
+    asserts:
+      - failedTemplate:
+          errorPattern: rbac.rules must be set
+
+  - it: renders a Role with rules and a binding to the ServiceAccount
+    set:
+      rbac.create: true
+      rbac.rules:
+        - apiGroups: [""]
+          resources: [configmaps]
+          verbs: [get]
+    asserts:
+      - isKind:
+          of: Role
+        template: role.yaml
+      - equal:
+          path: rules[0].resources
+          value: [configmaps]
+        template: role.yaml
+      - isKind:
+          of: RoleBinding
+        template: rolebinding.yaml
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-app
+        template: rolebinding.yaml
+      - equal:
+          path: subjects[0]
+          value:
+            kind: ServiceAccount
+            name: RELEASE-NAME-app
+            namespace: NAMESPACE
+        template: rolebinding.yaml

@@ -1,141 +1,219 @@
 # yaml-language-server: $schema=./values.schema.json
 ---
-fullnameOverride: ""
-
+# -- Override the chart name used in resource names and labels.
 nameOverride: ""
 
+# -- Override the fully qualified release name used for all resources.
+fullnameOverride: ""
+
+# -- Deploy resources into this namespace instead of the release namespace.
 namespaceOverride: ""
 
 image:
+  # -- Container image repository. Required.
   repository: ""
+  # -- Image tag. Either `image.tag` or `image.digest` is required.
   tag: ""
+  # -- Image digest (`sha256:...`). Takes precedence over `image.tag`.
   digest: ""
+  # -- Image pull policy. Defaults to `IfNotPresent`.
   pullPolicy: ""
 
+# -- Secrets used to pull the image, as a list of `name:` entries.
+imagePullSecrets: []
+
 serviceAccount:
+  # -- Create a ServiceAccount for the workload.
   create: true
+  # -- Name of the ServiceAccount. Defaults to the fullname when created, or `default` otherwise.
   name: ""
+  # -- Extra labels for the ServiceAccount. Values are rendered as templates.
   labels: {}
+  # -- Extra annotations for the ServiceAccount. Values are rendered as templates.
   annotations: {}
+  # -- Mount the ServiceAccount token into the pod.
+  automountServiceAccountToken: false
 
 rbac:
-  create: true
+  # -- Create a Role and RoleBinding for the ServiceAccount. Requires `rbac.rules`.
+  create: false
+  # -- PolicyRules for the Role. Must be non-empty when `rbac.create` is true.
+  rules: []
 
 service:
-  enable: true
+  # -- Create a Service.
+  enabled: true
+  # -- Service type.
+  type: ClusterIP
+  # -- Extra labels for the Service. Values are rendered as templates.
   labels: {}
+  # -- Extra annotations for the Service. Values are rendered as templates.
   annotations: {}
+  # -- Service ports. Required when the Service is enabled.
   ports:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 8080
+      targetPort: http
 
 deployment:
+  # -- Number of replicas. Ignored when autoscaling is enabled.
+  replicas: 1
+  # -- Number of old ReplicaSets to retain. Omitted when null.
+  revisionHistoryLimit: null
+
+  # -- Extra labels for the Deployment. Values are rendered as templates.
   labels: {}
+  # -- Extra annotations for the Deployment. Values are rendered as templates.
   annotations: {}
+  # -- Extra labels for the pods. Values are rendered as templates.
+  podLabels: {}
+  # -- Extra annotations for the pods. Values are rendered as templates.
+  podAnnotations: {}
 
-  command: []
-  args: []
-
-  ports:
-    - name: http
-      protocol: TCP
-      containerPort: 8080
-
+  # -- Deployment update strategy.
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 25%
       maxUnavailable: 25%
 
+  # -- Grace period for pod termination, in seconds.
+  terminationGracePeriodSeconds: 30
+  # -- PriorityClass for the pods.
+  priorityClassName: ""
+
+  # -- Node selector for the pods. Rendered as a template.
+  nodeSelector: {}
+  # -- Tolerations for the pods. Rendered as a template.
+  tolerations: []
+  # -- Affinity rules for the pods. Rendered as a template. Defaults to a soft anti-affinity across nodes.
   affinity:
     podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - topologyKey: kubernetes.io/hostname
-          labelSelector:
-            matchExpressions:
-              - key: app.kubernetes.io/name
-                operator: In
-                values:
-                  - '{{ include "app.fullname" . }}'
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: '{{ include "app.name" . }}'
+                app.kubernetes.io/instance: "{{ .Release.Name }}"
+  # -- Topology spread constraints for the pods. Rendered as a template.
+  topologySpreadConstraints: []
 
-  securityContext: {}
+  # -- Host aliases for the pods.
+  hostAliases: []
+  # -- DNS policy for the pods.
+  dnsPolicy: ""
+  # -- DNS config for the pods.
+  dnsConfig: {}
 
-  envFrom: []
+  # -- Pod-level security context. Defaults satisfy the restricted Pod Security Standard; set `runAsUser` if the image has no numeric USER.
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
 
-  env: []
+  # -- Container-level security context for the main container. Defaults satisfy the restricted Pod Security Standard.
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
 
-  startupProbe:
-    {}
-    # initialDelaySeconds: 30
-    # periodSeconds: 10
-    # failureThreshold: 100
-    # timeoutSeconds: 5
-    # httpGet:
-    #   port: http
-    #   path: /healthz
-
-  readinessProbe:
-    {}
-    # initialDelaySeconds: 30
-    # periodSeconds: 10
-    # failureThreshold: 100
-    # timeoutSeconds: 5
-    # httpGet:
-    #   port: http
-    #   path: /readyz
-
-  livenessProbe:
-    {}
-    # failureThreshold: 2
-    # periodSeconds: 5
-    # successThreshold: 1
-    # timeoutSeconds: 2
-    # initialDelaySeconds: 10
-    # httpGet:
-    #   port: http
-    #   path: /livez
-
-  resources:
-    {}
-    # limits:
-    #   cpu: 1
-    #   memory: 1Gi
-    #   ephemeral-storage: 1Gi
-    # requests:
-    #   cpu: 0.5
-    #   memory: 512Mi
-    #   ephemeral-storage: 1Gi
-
-  volumeMounts: []
-
-  volumes: []
-
+  # -- Init containers. Rendered as a template.
+  initContainers: []
+  # -- Additional containers appended to the pod. Rendered as a template.
   additionalContainers: []
 
+  # -- Container entrypoint. Rendered as a template.
+  command: []
+  # -- Container arguments. Rendered as a template.
+  args: []
+
+  # -- Container ports.
+  ports:
+    - name: http
+      protocol: TCP
+      containerPort: 8080
+
+  # -- Environment sources (ConfigMaps and Secrets). Rendered as a template.
+  envFrom: []
+  # -- Environment variables. Rendered as a template.
+  env: []
+
+  # -- Container lifecycle hooks.
+  lifecycle: {}
+
+  # -- Startup probe for the main container.
+  startupProbe: {}
+  # -- Readiness probe for the main container.
+  readinessProbe: {}
+  # -- Liveness probe for the main container.
+  livenessProbe: {}
+
+  # -- Resource requests and limits for the main container.
+  resources: {}
+
+  # -- Volume mounts for the main container. Rendered as a template.
+  volumeMounts: []
+  # -- Pod volumes. Rendered as a template.
+  volumes: []
+
 pdb:
-  enable: true
+  # -- Create a PodDisruptionBudget. Only rendered when replicas > 1 or autoscaling is enabled.
+  enabled: true
+  # -- Minimum available pods. Mutually exclusive with `pdb.maxUnavailable`; set to null to use the other.
   minAvailable: 1
+  # -- Maximum unavailable pods. Mutually exclusive with `pdb.minAvailable`.
+  maxUnavailable: null
+  # -- Extra labels for the PodDisruptionBudget. Values are rendered as templates.
+  labels: {}
+  # -- Extra annotations for the PodDisruptionBudget. Values are rendered as templates.
+  annotations: {}
 
 autoscaling:
-  enable: false
+  # -- Create a HorizontalPodAutoscaler. When enabled, `deployment.replicas` is not rendered.
+  enabled: false
+  # -- Minimum replicas.
+  minReplicas: 1
+  # -- Maximum replicas.
+  maxReplicas: 3
+  # -- HPA metrics.
+  metrics: []
+  # -- HPA scaling behavior.
   behavior: {}
-  metrics: {}
+  # -- Extra labels for the HorizontalPodAutoscaler. Values are rendered as templates.
   labels: {}
+  # -- Extra annotations for the HorizontalPodAutoscaler. Values are rendered as templates.
   annotations: {}
 
 networkPolicy:
-  enable: false
-  ingress: {}
-  egress: {}
+  # -- Create a NetworkPolicy. At least one of `ingress` or `egress` must be set.
+  enabled: false
+  # -- Ingress rules.
+  ingress: []
+  # -- Egress rules.
+  egress: []
+  # -- Extra labels for the NetworkPolicy. Values are rendered as templates.
+  labels: {}
+  # -- Extra annotations for the NetworkPolicy. Values are rendered as templates.
+  annotations: {}
 
+# -- ConfigMap data, keyed by file or variable name. Scalar values are converted to strings. Changes trigger a rollout.
 config: {}
 
 ingress:
-  enable: false
+  # -- Create an Ingress.
+  enabled: false
+  # -- Extra labels for the Ingress. Values are rendered as templates.
   labels: {}
+  # -- Extra annotations for the Ingress. Values are rendered as templates.
   annotations: {}
+  # -- IngressClass name.
   ingressClassName: ""
+  # -- TLS entries, each with `hosts` and an optional `secretName`.
   tls: []
+  # -- HTTP rules, each with `host` and `paths` (`path`, `servicePortNumber`, optional `pathType` defaulting to `Prefix`).
   httpHosts: []

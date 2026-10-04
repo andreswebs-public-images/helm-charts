@@ -1,5 +1,6 @@
+ci/
 tests/
 docs/
-README.md
+README.md.gotmpl
 .git
 *.bak
